@@ -5,51 +5,26 @@
 
 ---
 
-## 💡 The Philosophy — A Poor Man's Water Monitor
+## 🙏 Inspiration & Gratitude
 
-I came across **[TankSync by @Techposts](https://github.com/Techposts/TankSync)** and loved the idea.  
-His build is professional, reliable, runs all day without issues, and is genuinely well-engineered.
+This project is a simplified, budget-focused DIY variation of the incredible **[TankSync](https://github.com/Techposts/TankSync)** project created by **[@Techposts](https://github.com/Techposts)**. 
 
-**But I had one problem — I didn't want to spend that much.**
+I want to express my deepest appreciation and credit to the original author. Without their open-source codebase and brilliant ideas, this build would not have been possible. TankSync is an exceptionally reliable, professional-grade solution that supports multiple tanks, history logging, and runs rock-solid 24/7.
 
-So I asked myself: *what is the absolute minimum I need to know if my tank is full or empty?*  
-The answer was simple — just a percentage on my phone. Nothing more.
-
-That's what this is. No fancy features. No multi-tank support. No OTA updates.  
-Just a ₹486 sensor stuck to a tank lid, telling me how much water I have left.
-
-This is the **DIY, jugaad, poor man's version** — built with whatever was cheapest at the local electronics shop.
+My version is a humble, stripped-down DIY adaptation. My goal was simply to see if I could build a minimal, barebones version on a very tight budget to cover my basic needs. If you need a fully-featured, production-ready, and highly polished solution, I strongly encourage you to check out and support the original **[TankSync](https://github.com/Techposts/TankSync)** project.
 
 ---
 
-## 🧾 Bill of Materials — Total Cost ₹ ~490
+## 🧾 Bill of Materials — Total Cost ~₹490
 
-| Component | What it does | Cost |
-|---|---|---|
-| **ESP8266 NodeMCU** | The brain — runs Wi-Fi + web server | ₹ 175 |
-| **JSN-SR04M** | Waterproof ultrasonic sensor — measures water level | ₹ 259 |
-| **CCTV junction box** | Weatherproof enclosure to house the electronics | ₹ 50 |
-| **Resistors + wire + solder** | Wiring it all up | ₹ 2–5 |
-| **Total** | | **≈ ₹ 490** |
+This project was built using the absolute minimal, budget-friendly components available locally:
 
-> That's less than ₹500 for a live water level monitor on your phone.  
-> No subscription. No hub. No internet required. Just your home Wi-Fi.
+- **ESP8266 NodeMCU** (Microcontroller & Wi-Fi): **₹175**
+- **JSN-SR04M** (Waterproof ultrasonic sensor): **₹259**
+- **CCTV Junction Box** (Weatherproof enclosure): **₹50**
+- **Solder, wires, & a resistor**: **₹2–5**
 
----
-
-## 🙏 Credit & Comparison
-
-| | This project | [TankSync](https://github.com/Techposts/TankSync) (original) |
-|---|---|---|
-| **Philosophy** | Cheap DIY / jugaad | Professional & reliable |
-| **Complexity** | Barebones — 1 file | Multi-file, structured |
-| **Features** | Level % + Wi-Fi signal + calibration | Multi-tank, history, alerts, OTA, and more |
-| **Reliability** | Good enough for home use | Rock solid, runs 24/7 |
-| **Best for** | ₹500 budget builds, learning, hacking | Anyone who wants it to just work |
-
-> **If you want something that works reliably, professionally, and has all the features — use [TankSync](https://github.com/Techposts/TankSync). The original author did an excellent job.**  
->  
-> **If you want the cheapest possible thing that gets the job done — you're in the right place.**
+*Total Estimated Cost: **≈ ₹490*** (Less than ₹500 for a local, subscription-free Wi-Fi water level monitor).
 
 ---
 
