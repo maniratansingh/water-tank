@@ -1,0 +1,1035 @@
+/**
+ * @file  web_assets.h
+ * @brief Web dashboard assets stored in ESP8266 flash (PROGMEM).
+ *
+ * ⚠️  AUTO-EMBED NOTE
+ * -------------------
+ * The canonical sources are in the data/ directory:
+ *   data/index.html
+ *   data/style.css
+ *   data/app.js
+ *
+ * After editing those files, paste the updated content into the
+ * raw-string literals below, then re-flash the firmware.
+ *
+ * Alternatively, run the helper script:
+ *   python3 scripts/embed_assets.py
+ * to regenerate this file automatically.
+ */
+
+#pragma once
+#include <pgmspace.h>
+
+// ── index.html ────────────────────────────────────────────────────
+const char index_html[] PROGMEM = R"rawliteral(
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kids Water Monitor — ESP8266 Standalone</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal-overlay hidden">
+    <div class="modal-box" role="dialog" aria-modal="true">
+      <div class="modal-header">
+        <h2 class="modal-title">Tank Settings</h2>
+        <button class="btn-icon-only" onclick="toggleSettings(false)">✕</button>
+      </div>
+      <p class="modal-sub">Configure the sensor calibration directly on the device.</p>
+
+      <div class="form-group">
+        <label for="set-capacity">Total Capacity (Liters)</label>
+        <input id="set-capacity" type="number" placeholder="1000" />
+      </div>
+
+      <div class="form-group">
+        <label for="set-empty">Empty Distance (cm)</label>
+        <p class="input-hint">Distance from sensor to the bottom of the tank</p>
+        <input id="set-empty" type="number" placeholder="100" />
+      </div>
+
+      <div class="form-group">
+        <label for="set-full">Full Distance (cm)</label>
+        <p class="input-hint">Distance from sensor to the maximum water level</p>
+        <input id="set-full" type="number" placeholder="20" />
+      </div>
+
+      <button class="btn-primary" onclick="saveSettings()">
+        <span class="btn-icon">💾</span>
+        Save to ESP8266
+      </button>
+    </div>
+  </div>
+
+  <!-- Main app -->
+  <div id="app" class="app">
+    <header class="app-header">
+      <div class="header-left">
+        <div class="header-logo">
+          <svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M16 2C16 2 6 10 6 19a10 10 0 0 0 20 0C26 10 16 2 16 2z" fill="url(#hDropGrad)"/>
+            <defs>
+              <linearGradient id="hDropGrad" x1="16" y1="2" x2="16" y2="29" gradientUnits="userSpaceOnUse">
+                <stop offset="0%" stop-color="#60c8ff"/>
+                <stop offset="100%" stop-color="#0070f3"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <div>
+          <h1 class="header-title">Water Monitor</h1>
+          <p class="header-sub">ESP8266 Live Dashboard</p>
+        </div>
+      </div>
+      <div class="header-right">
+        <div id="ws-status" class="ws-badge ws-connecting">
+          <span class="ws-dot"></span>
+          <span id="ws-label">Connecting…</span>
+        </div>
+        <button id="settings-btn" class="btn-icon-only" title="Settings" onclick="toggleSettings(true)">⚙️</button>
+      </div>
+    </header>
+
+    <main class="single-tank-layout" id="tank-card-container">
+      <!-- dynamically populated by app.js -->
+    </main>
+
+    <section class="log-section">
+      <div class="log-header">
+        <span class="log-title">📡 Event Log</span>
+        <button class="btn-ghost-sm" onclick="clearLog()">Clear</button>
+      </div>
+      <div id="event-log" class="log-body"></div>
+    </section>
+  </div>
+
+  <div id="toast-container"></div>
+  <script src="app.js"></script>
+</body>
+</html>
+)rawliteral";
+
+// ── style.css ─────────────────────────────────────────────────────
+const char style_css[] PROGMEM = R"rawliteral(
+/* ============================================================
+   SmartGhar TankSync Dashboard — Simplified CSS Design System
+   ============================================================ */
+
+:root {
+  --bg-base:       #080c14;
+  --bg-card:       rgba(255,255,255,0.04);
+  --bg-card-hover: rgba(255,255,255,0.07);
+  --bg-glass:      rgba(12,20,36,0.85);
+  --border:        rgba(255,255,255,0.08);
+  --border-strong: rgba(255,255,255,0.15);
+
+  --blue:          #0070f3;
+  --blue-light:    #60c8ff;
+  --cyan:          #00d9ff;
+  --green:         #22c55e;
+  --green-dim:     #16a34a;
+  --yellow:        #f59e0b;
+  --orange:        #f97316;
+  --red:           #ef4444;
+
+  --text-1:        #f0f4ff;
+  --text-2:        #8892aa;
+  --text-3:        #4a5568;
+
+  --radius-sm:     8px;
+  --radius-md:     14px;
+  --radius-lg:     20px;
+  --radius-xl:     28px;
+
+  --shadow-card:   0 4px 32px rgba(0,0,0,0.4);
+  --shadow-glow-blue: 0 0 24px rgba(0,112,243,0.35);
+
+  --font-body:     'Inter', system-ui, sans-serif;
+  --font-mono:     'JetBrains Mono', 'Fira Code', monospace;
+
+  --transition:    all 0.2s cubic-bezier(0.4,0,0.2,1);
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-base);
+  color: var(--text-1);
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% 0%, rgba(0,112,243,0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 50% at 80% 100%, rgba(0,217,255,0.08) 0%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hidden { display: none !important; }
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8,12,20,0.92);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.3s ease;
+}
+
+.app {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-glass);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0.875rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.header-left { display: flex; align-items: center; gap: 0.875rem; }
+
+.header-logo {
+  width: 36px; height: 36px;
+  background: radial-gradient(circle, rgba(0,112,243,0.2), transparent);
+  border-radius: 50%;
+  border: 1px solid rgba(0,112,243,0.3);
+  display: flex; align-items: center; justify-content: center;
+  padding: 6px;
+  flex-shrink: 0;
+}
+.header-logo svg { width: 100%; height: 100%; }
+
+.header-title {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(135deg, #f0f4ff, var(--blue-light));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.header-sub {
+  font-size: 0.7rem;
+  color: var(--text-3);
+  font-weight: 400;
+  margin-top: -2px;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.ws-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  transition: var(--transition);
+}
+
+.ws-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.ws-connecting { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.3); color: var(--yellow); }
+.ws-connecting .ws-dot { background: var(--yellow); animation: pulse 1.2s ease-in-out infinite; }
+
+.ws-connected { background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.3); color: var(--green); }
+.ws-connected .ws-dot { background: var(--green); animation: pulse 2s ease-in-out infinite; }
+
+.ws-error, .ws-disconnected { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.3); color: var(--red); }
+.ws-error .ws-dot, .ws-disconnected .ws-dot { background: var(--red); }
+
+.single-tank-layout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 2rem 1.5rem;
+  max-width: 520px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+.tank-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.75rem;
+  transition: var(--transition);
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  box-shadow: var(--shadow-card);
+  animation: cardIn 0.4s cubic-bezier(0.34,1.56,0.64,1) both;
+}
+
+.tank-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-lg);
+  background: linear-gradient(135deg, rgba(255,255,255,0.04) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.tank-card:hover { background: var(--bg-card-hover); border-color: var(--border-strong); }
+
+.tank-card.status-online  { --card-glow: rgba(34,197,94,0.1);  border-color: rgba(34,197,94,0.25); }
+.tank-card.status-stale   { --card-glow: rgba(245,158,11,0.1); border-color: rgba(245,158,11,0.25); }
+.tank-card.status-lost    { --card-glow: rgba(239,68,68,0.1);  border-color: rgba(239,68,68,0.25); }
+.tank-card.status-online::after,
+.tank-card.status-stale::after,
+.tank-card.status-lost::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: var(--radius-lg);
+  background: var(--card-glow);
+  z-index: -1;
+}
+
+.tank-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.5rem; }
+.tank-name-row { display: flex; flex-direction: column; gap: 0.25rem; }
+.tank-name { font-size: 1.25rem; font-weight: 800; color: var(--text-1); letter-spacing: -0.01em; }
+.tank-id   { font-size: 0.75rem; font-family: var(--font-mono); color: var(--text-2); }
+
+.tank-status-badge {
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  flex-shrink: 0;
+}
+
+.badge-online  { background: rgba(34,197,94,0.15);   color: var(--green);  border: 1px solid rgba(34,197,94,0.3); }
+.badge-stale   { background: rgba(245,158,11,0.15);  color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
+.badge-lost    { background: rgba(239,68,68,0.15);   color: var(--red);    border: 1px solid rgba(239,68,68,0.3); }
+.badge-waiting { background: rgba(138,100,255,0.15); color: #a78bfa;       border: 1px solid rgba(138,100,255,0.3); }
+
+.tank-visual { display: flex; align-items: center; gap: 1.75rem; margin-bottom: 1.5rem; }
+.tank-svg-wrap { position: relative; width: 100px; flex-shrink: 0; }
+.tank-svg-wrap svg { width: 100px; height: 140px; display: block; }
+
+.tank-water {
+  transition: height 1s cubic-bezier(0.4, 0, 0.2, 1),
+              y      1s cubic-bezier(0.4, 0, 0.2, 1),
+              fill  0.5s;
+}
+
+.tank-wave {
+  animation: waveScroll 3s linear infinite;
+  transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1), fill 0.5s;
+}
+
+@keyframes waveScroll { from { transform: translateX(0); } to { transform: translateX(-60px); } }
+
+.tank-pct-overlay {
+  position: absolute;
+  bottom: 16px; left: 0; right: 0;
+  text-align: center;
+  font-size: 0.875rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.6);
+  pointer-events: none;
+}
+
+.tank-level-info { flex: 1; }
+
+.level-pct {
+  font-size: 3.5rem;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  line-height: 1;
+  letter-spacing: -0.03em;
+}
+
+.level-unit   { font-size: 1.25rem; font-weight: 600; color: var(--text-2); margin-left: 2px; }
+.level-volume { font-size: 0.95rem; color: var(--text-2); margin-top: 6px; }
+.level-volume strong { color: var(--text-1); font-weight: 700; }
+
+.tank-progress { margin-bottom: 1.5rem; }
+
+.progress-track {
+  height: 8px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 1s cubic-bezier(0.4,0,0.2,1);
+  position: relative;
+}
+.progress-fill::after {
+  content: '';
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 20px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3));
+  border-radius: 999px;
+}
+
+.level-critical .level-pct { color: var(--red); }
+.level-low      .level-pct { color: var(--orange); }
+.level-mid      .level-pct { color: var(--yellow); }
+.level-good     .level-pct { color: var(--green); }
+.level-full     .level-pct { color: var(--cyan); }
+
+.level-critical .progress-fill { background: linear-gradient(90deg, #ef4444, #f97316); }
+.level-low      .progress-fill { background: linear-gradient(90deg, #f97316, #f59e0b); }
+.level-mid      .progress-fill { background: linear-gradient(90deg, #f59e0b, #22c55e); }
+.level-good     .progress-fill { background: linear-gradient(90deg, #22c55e, #00d9ff); }
+.level-full     .progress-fill { background: linear-gradient(90deg, #00d9ff, #0070f3); }
+
+.level-critical .tank-water, .level-critical .tank-wave { fill: url(#waterCritical); }
+.level-low      .tank-water, .level-low      .tank-wave { fill: url(#waterLow); }
+.level-mid      .tank-water, .level-mid      .tank-wave { fill: url(#waterMid); }
+.level-good     .tank-water, .level-good     .tank-wave { fill: url(#waterGood); }
+.level-full     .tank-water, .level-full     .tank-wave { fill: url(#waterFull); }
+
+.tank-stats { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; }
+
+.stat-item {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.625rem;
+  text-align: center;
+  transition: var(--transition);
+}
+.stat-item:hover { background: rgba(255,255,255,0.06); border-color: var(--border-strong); }
+.stat-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-3); font-weight: 600; margin-bottom: 4px; }
+.stat-val   { font-size: 0.9rem; font-weight: 700; font-family: var(--font-mono); color: var(--text-1); }
+
+.sensor-alert {
+  margin-top: 1rem;
+  padding: 0.625rem 0.875rem;
+  background: rgba(239,68,68,0.1);
+  border: 1px solid rgba(239,68,68,0.25);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  color: #fca5a5;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+#toast-container {
+  position: fixed;
+  bottom: 1.5rem; right: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 9999;
+}
+
+.toast {
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-md);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  backdrop-filter: blur(12px);
+  animation: toastIn 0.3s cubic-bezier(0.34,1.56,0.64,1);
+  box-shadow: var(--shadow-card);
+  max-width: 320px;
+}
+
+.toast-info    { background: rgba(0,112,243,0.85);  border: 1px solid rgba(96,200,255,0.3); color: #fff; }
+.toast-success { background: rgba(22,163,74,0.85);  border: 1px solid rgba(34,197,94,0.3);  color: #fff; }
+.toast-warn    { background: rgba(180,83,9,0.85);   border: 1px solid rgba(245,158,11,0.3); color: #fff; }
+.toast-error   { background: rgba(185,28,28,0.85);  border: 1px solid rgba(239,68,68,0.3);  color: #fff; }
+
+#svg-defs { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(24px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+@keyframes cardIn {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes logIn   { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(16px) scale(0.95); }
+  to   { opacity: 1; transform: translateX(0)    scale(1); }
+}
+@keyframes toastOut { to { opacity: 0; transform: translateX(16px) scale(0.95); } }
+@keyframes pulse {
+  0%, 100% { opacity: 1;   transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(0.85); }
+}
+
+@media (max-width: 640px) {
+  .app-header         { padding: 0.75rem 1rem; }
+  .single-tank-layout { padding: 1.5rem 1rem; }
+  .log-section        { margin: 0 1rem 1rem; }
+  .modal-box          { padding: 2rem 1.5rem 1.5rem; }
+}
+
+.modal-box {
+  background: rgba(14,22,38,0.95);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xl);
+  padding: 2.5rem 2.5rem 2rem;
+  width: min(460px, 94vw);
+  box-shadow: 0 0 80px rgba(0,112,243,0.15), var(--shadow-card);
+  animation: slideUp 0.4s cubic-bezier(0.34,1.56,0.64,1);
+}
+
+.modal-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  text-align: center;
+  background: linear-gradient(135deg, #f0f4ff 0%, var(--blue-light) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  letter-spacing: -0.02em;
+}
+
+.modal-sub {
+  text-align: center;
+  color: var(--text-2);
+  font-size: 0.875rem;
+  margin-top: 0.4rem;
+  margin-bottom: 2rem;
+}
+
+.form-group { margin-bottom: 1.25rem; }
+
+.form-group label {
+  display: block;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.5rem;
+}
+
+input[type="text"],
+input[type="password"],
+input[type="number"] {
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 0.625rem 0.875rem;
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  outline: none;
+  transition: var(--transition);
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="number"]:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(0,112,243,0.2);
+}
+
+input::placeholder { color: var(--text-3); }
+
+.btn-primary {
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: linear-gradient(135deg, var(--blue) 0%, #0052cc 100%);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  transition: var(--transition);
+  box-shadow: 0 4px 16px rgba(0,112,243,0.4);
+  margin-top: 0.5rem;
+}
+.btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 24px rgba(0,112,243,0.5); }
+
+.btn-ghost-sm {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  font-family: var(--font-body);
+  font-size: 0.75rem;
+  cursor: pointer;
+  padding: 0.25rem 0.625rem;
+  border-radius: 4px;
+  transition: var(--transition);
+}
+.btn-ghost-sm:hover { border-color: var(--border-strong); color: var(--text-1); }
+
+.btn-icon-only {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  width: 32px; height: 32px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-size: 0.75rem;
+  transition: var(--transition);
+  display: flex; align-items: center; justify-content: center;
+}
+.btn-icon-only:hover { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.4); color: var(--red); }
+
+.log-section {
+  margin: 0 1.5rem 1.5rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.log-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 1rem;
+  background: rgba(255,255,255,0.02);
+  border-bottom: 1px solid var(--border);
+}
+
+.log-title { font-size: 0.8125rem; font-weight: 600; color: var(--text-2); }
+
+.log-body {
+  height: 120px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column-reverse;
+  gap: 2px;
+}
+
+.log-body::-webkit-scrollbar       { width: 4px; }
+.log-body::-webkit-scrollbar-track { background: transparent; }
+.log-body::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 999px; }
+
+.log-entry {
+  padding: 0.3rem 0.625rem;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-family: var(--font-mono);
+  display: flex;
+  gap: 0.75rem;
+  align-items: baseline;
+  animation: logIn 0.2s ease;
+}
+.log-entry:hover { background: rgba(255,255,255,0.03); }
+
+.log-time { color: var(--text-3); flex-shrink: 0; }
+.log-type { flex-shrink: 0; font-weight: 600; }
+.log-msg  { color: var(--text-2); }
+
+.log-info    .log-type { color: var(--blue-light); }
+.log-warn    .log-type { color: var(--yellow); }
+.log-error   .log-type { color: var(--red); }
+.log-success .log-type { color: var(--green); }
+.log-data    .log-type { color: #a78bfa; }
+
+.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+.modal-header .modal-title { margin-bottom: 0; }
+.input-hint { font-size: 0.8rem; color: #a0aec0; margin-top: -0.25rem; margin-bottom: 0.5rem; }
+)rawliteral";
+
+// ── app.js ────────────────────────────────────────────────────────
+const char app_js[] PROGMEM = R"rawliteral(
+/* ================================================================
+   Standalone ESP8266 TankSync Dashboard
+   ================================================================ */
+'use strict';
+
+let ws = null;
+let tankData = null;
+let reconnectTimer = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT = 8;
+
+const SVG_DEFS = `
+<svg id="svg-defs" aria-hidden="true" style="position: absolute; width: 0; height: 0;">
+  <defs>
+    <linearGradient id="waterCritical" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#ef4444"/>
+    </linearGradient>
+    <linearGradient id="waterLow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#f97316"/>
+    </linearGradient>
+    <linearGradient id="waterMid" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="waterGood" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#00d9ff"/>
+      <stop offset="100%" stop-color="#22c55e"/>
+    </linearGradient>
+    <linearGradient id="waterFull" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#60c8ff"/>
+      <stop offset="100%" stop-color="#0070f3"/>
+    </linearGradient>
+  </defs>
+</svg>`;
+
+const $ = id => document.getElementById(id);
+const fmt     = n => (n === null || n === undefined || isNaN(n)) ? '—' : Number(n).toLocaleString('en-IN');
+const fmtPct  = n => (n === null || n === undefined) ? '—' : `${Math.round(n)}`;
+const fmtRssi = r => r ? `${r} dBm` : '—';
+const now     = () => new Date().toLocaleTimeString('en-IN', { hour12: false });
+
+function levelClass(pct) {
+  if (pct === null || pct === undefined) return '';
+  if (pct <= 10) return 'level-critical';
+  if (pct <= 25) return 'level-low';
+  if (pct <= 50) return 'level-mid';
+  if (pct <= 85) return 'level-good';
+  return 'level-full';
+}
+
+function levelColor(pct) {
+  if (pct === null) return '#4a5568';
+  if (pct <= 10) return 'url(#waterCritical)';
+  if (pct <= 25) return 'url(#waterLow)';
+  if (pct <= 50) return 'url(#waterMid)';
+  if (pct <= 85) return 'url(#waterGood)';
+  return 'url(#waterFull)';
+}
+
+function log(type, msg) {
+  const logEl = $('event-log');
+  if (!logEl) return;
+  const entry = document.createElement('div');
+  entry.className = `log-entry log-${type}`;
+  const typeLabels = { info: 'INFO', warn: 'WARN', error: 'ERR!', success: 'OK  ', data: 'DATA' };
+  entry.innerHTML = `
+    <span class="log-time">${now()}</span>
+    <span class="log-type">${typeLabels[type] || type.toUpperCase()}</span>
+    <span class="log-msg">${escHtml(msg)}</span>`;
+  logEl.prepend(entry);
+  while (logEl.children.length > 50) logEl.removeChild(logEl.lastChild);
+}
+
+function clearLog() { const el = $('event-log'); if (el) el.innerHTML = ''; }
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function toast(msg, type = 'info', duration = 3500) {
+  const c = $('toast-container');
+  if (!c) return;
+  const t = document.createElement('div');
+  t.className = `toast toast-${type}`;
+  t.textContent = msg;
+  c.appendChild(t);
+  setTimeout(() => {
+    t.style.animation = 'toastOut 0.3s ease forwards';
+    setTimeout(() => t.remove(), 320);
+  }, duration);
+}
+
+function setWsStatus(state, label) {
+  const badge = $('ws-status');
+  const lbl   = $('ws-label');
+  if (badge) badge.className = `ws-badge ws-${state}`;
+  if (lbl)   lbl.textContent = label;
+}
+
+function toggleSettings(show) {
+  $('settings-modal').classList.toggle('hidden', !show);
+}
+
+function saveSettings() {
+  const empty = parseInt($('set-empty').value);
+  const full  = parseInt($('set-full').value);
+  const cap   = parseInt($('set-capacity').value);
+
+  if (isNaN(empty) || isNaN(full) || isNaN(cap)) { toast('Please enter valid numbers', 'warn'); return; }
+  if (empty <= full) { toast('Empty distance must be greater than full distance', 'error'); return; }
+
+  const payload = { type: 'update_settings', empty_distance_cm: empty, full_distance_cm: full, capacity_l: cap };
+
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify(payload));
+    toast('Settings saved to ESP8266', 'success');
+    toggleSettings(false);
+  } else {
+    toast('Not connected to device', 'error');
+  }
+}
+
+function autoConnect() {
+  const ip  = window.location.host;
+  const url = ip ? `ws://${ip}/ws` : `ws://192.168.1.100/ws`;
+  log('info', `Auto-connecting to ${url}…`);
+  openWebSocket(url);
+}
+
+function openWebSocket(url) {
+  if (ws) ws.close();
+  setWsStatus('connecting', 'Connecting…');
+
+  try { ws = new WebSocket(url); } catch (e) {
+    log('error', `WebSocket creation failed: ${e.message}`);
+    setWsStatus('error', 'Error');
+    scheduleReconnect(url);
+    return;
+  }
+
+  ws.addEventListener('open', () => {
+    reconnectAttempts = 0;
+    setWsStatus('connected', 'Live');
+    log('success', `WebSocket connected to ${url}`);
+    toast('Connected to Sensor 🎉', 'success');
+  });
+
+  ws.addEventListener('message', e => {
+    try { handleMessage(JSON.parse(e.data)); }
+    catch (err) { log('warn', `Unparse-able frame: ${e.data.slice(0, 80)}`); }
+  });
+
+  ws.addEventListener('close', evt => {
+    setWsStatus('disconnected', 'Disconnected');
+    log('warn', `Connection closed (code ${evt.code})`);
+    toast('Sensor disconnected — reconnecting…', 'warn');
+    scheduleReconnect(url);
+  });
+
+  ws.addEventListener('error', () => { setWsStatus('error', 'Error'); log('error', 'WebSocket error'); });
+}
+
+function scheduleReconnect(url) {
+  if (reconnectAttempts >= MAX_RECONNECT) {
+    log('error', 'Max reconnect attempts reached. Please refresh page.');
+    toast('Could not reconnect. Refresh the page.', 'error', 6000);
+    return;
+  }
+  const delay = Math.min(2000 * 2 ** reconnectAttempts, 30000);
+  reconnectAttempts++;
+  log('info', `Retry ${reconnectAttempts}/${MAX_RECONNECT} in ${(delay / 1000).toFixed(0)}s…`);
+  setWsStatus('connecting', `Retry ${reconnectAttempts}…`);
+  reconnectTimer = setTimeout(() => openWebSocket(url), delay);
+}
+
+function handleMessage(msg) {
+  if (msg.type !== 'state') { log('info', `msg type="${msg.type}"`); return; }
+
+  if (msg.settings && $('settings-modal').classList.contains('hidden')) {
+    $('set-empty').value = msg.settings.empty_distance_cm;
+    $('set-full').value  = msg.settings.full_distance_cm;
+  }
+
+  const devs = msg.devices || [];
+  if (devs.length > 0) {
+    if (msg.settings) $('set-capacity').value = devs[0].capacity_l;
+    updateTank(devs[0]);
+  }
+}
+
+function updateTank(d) {
+  const state  = d.state || {};
+  const exists = (tankData !== null);
+
+  tankData = {
+    id:           d.tank,
+    name:         d.name || `Tank ${d.tank}`,
+    capacity_l:   d.capacity_l || 0,
+    level_pct:    state.level_pct   ?? null,
+    rssi:         state.rssi        ?? null,
+    conn_state:   state.conn_state  || 'waiting',
+    sensor_error: state.sensor_error || false,
+    sensor_stuck: state.sensor_stuck || false,
+    updatedAt:    Date.now(),
+  };
+
+  tankData.volume_l = (tankData.capacity_l && tankData.level_pct !== null)
+    ? Math.round(tankData.capacity_l * tankData.level_pct / 100) : null;
+
+  renderTankCard(tankData, !exists);
+}
+
+function renderTankCard(tank, isNew) {
+  const container = $('tank-card-container');
+  if (!container) return;
+
+  if (!container.firstElementChild) {
+    container.innerHTML = `<div class="tank-card status-${tank.conn_state}" id="main-tank-card"></div>`;
+    isNew = true;
+  }
+
+  const card = $('main-tank-card');
+  if (!card) return;
+  card.className = `tank-card status-${tank.conn_state}`;
+
+  const pct        = tank.level_pct ?? 0;
+  const lvlClass   = levelClass(tank.level_pct);
+  const statusBadge = statusBadgeHTML(tank.conn_state);
+  const sensorAlert = (tank.sensor_error || tank.sensor_stuck)
+    ? `<div class="sensor-alert">⚠ ${tank.sensor_error ? 'Too near (<20cm) or offline. Place at appropriate position.' : 'Sensor reading stuck'}</div>` : '';
+
+  const SVG_H  = 90;
+  const FILL_H = Math.max(0, Math.min(SVG_H, Math.round(SVG_H * pct / 100)));
+  const FILL_Y = SVG_H - FILL_H + 5;
+
+  if (isNew) {
+    card.innerHTML = `
+    <div class="tank-header">
+      <div class="tank-name-row">
+        <span class="tank-name">${escHtml(tank.name)}</span>
+        <span class="tank-id">${fmt(tank.capacity_l)} Litre Capacity</span>
+      </div>
+      <div id="status-badge-container">${statusBadge}</div>
+    </div>
+    <div class="tank-visual ${lvlClass}" id="tank-visual-container">
+      <div class="tank-svg-wrap">
+        <svg viewBox="0 0 60 100" fill="none" xmlns="http://www.w3.org/2000/svg" id="tank-svg">
+          <rect x="4" y="5" width="52" height="90" rx="6" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
+          <g clip-path="url(#tankClip)">
+            <rect class="tank-water" x="5.5" y="${FILL_Y}" width="49" height="${FILL_H}"
+              rx="${FILL_H > 5 ? 4 : 2}" fill="${levelColor(tank.level_pct)}" id="water-rect"/>
+            <path class="tank-wave" fill="${levelColor(tank.level_pct)}" opacity="0.6"
+              d="M 0 ${FILL_Y} Q 15 ${FILL_Y-3} 30 ${FILL_Y} T 60 ${FILL_Y} T 90 ${FILL_Y} T 120 ${FILL_Y} L 120 100 L 0 100 Z"
+              id="water-wave"/>
+          </g>
+          <rect x="5.5" y="5.75" width="49" height="89" rx="5" fill="url(#sheen)" opacity="0.3"/>
+          <defs>
+            <clipPath id="tankClip"><rect x="5.5" y="5.75" width="49" height="89" rx="5"/></clipPath>
+            <linearGradient id="sheen" x1="0" y1="0" x2="1" y2="0">
+              <stop offset="0%"   stop-color="white" stop-opacity="0.08"/>
+              <stop offset="40%"  stop-color="white" stop-opacity="0"/>
+              <stop offset="100%" stop-color="white" stop-opacity="0"/>
+            </linearGradient>
+          </defs>
+          <line x1="4" y1="${5+SVG_H*0.25}" x2="8" y2="${5+SVG_H*0.25}" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+          <line x1="4" y1="${5+SVG_H*0.5}"  x2="8" y2="${5+SVG_H*0.5}"  stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+          <line x1="4" y1="${5+SVG_H*0.75}" x2="8" y2="${5+SVG_H*0.75}" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+        </svg>
+        <div class="tank-pct-overlay" id="overlay-pct">${tank.level_pct !== null ? pct + '%' : '—'}</div>
+      </div>
+      <div class="tank-level-info ${lvlClass}" id="level-info-container">
+        <div>
+          <span class="level-pct" id="info-pct">${fmtPct(tank.level_pct)}</span>
+          <span class="level-unit">%</span>
+        </div>
+        <div class="level-volume"><strong id="info-vol">${fmt(tank.volume_l)} L</strong> available</div>
+      </div>
+    </div>
+    <div class="tank-progress ${lvlClass}" id="progress-container">
+      <div class="progress-track">
+        <div class="progress-fill" id="progress-fill" style="width:${tank.level_pct ?? 0}%"></div>
+      </div>
+    </div>
+    <div class="tank-stats">
+      <div class="stat-item">
+        <div class="stat-label">📡 Wi-Fi Signal</div>
+        <div class="stat-val" id="stat-rssi">${fmtRssi(tank.rssi)}</div>
+      </div>
+    </div>
+    <div id="sensor-alert-container">${sensorAlert}</div>`;
+
+    setTimeout(() => {
+      const rect = document.getElementById('water-rect');
+      const wave = document.getElementById('water-wave');
+      if (!rect) return;
+      rect.style.transition = 'none'; wave.style.transition = 'none';
+      rect.setAttribute('height', '0'); rect.setAttribute('y', '95');
+      wave.setAttribute('d', `M 0 95 Q 15 92 30 95 T 60 95 T 90 95 T 120 95 L 120 100 L 0 100 Z`);
+      requestAnimationFrame(() => requestAnimationFrame(() => {
+        rect.style.transition = ''; wave.style.transition = '';
+        rect.setAttribute('height', FILL_H); rect.setAttribute('y', FILL_Y);
+        wave.setAttribute('d', `M 0 ${FILL_Y} Q 15 ${FILL_Y-3} 30 ${FILL_Y} T 60 ${FILL_Y} T 90 ${FILL_Y} T 120 ${FILL_Y} L 120 100 L 0 100 Z`);
+      }));
+    }, 50);
+
+  } else {
+    const visual    = document.getElementById('tank-visual-container');
+    const levelInfo = document.getElementById('level-info-container');
+    const progCont  = document.getElementById('progress-container');
+    if (visual)    visual.className    = `tank-visual ${lvlClass}`;
+    if (levelInfo) levelInfo.className = `tank-level-info ${lvlClass}`;
+    if (progCont)  progCont.className  = `tank-progress ${lvlClass}`;
+
+    document.getElementById('status-badge-container').innerHTML = statusBadge;
+    document.getElementById('overlay-pct').innerText            = tank.level_pct !== null ? pct + '%' : '—';
+    document.getElementById('info-pct').innerText               = fmtPct(tank.level_pct);
+    document.getElementById('info-vol').innerText               = `${fmt(tank.volume_l)} L`;
+    document.getElementById('progress-fill').style.width        = `${tank.level_pct ?? 0}%`;
+    document.getElementById('stat-rssi').innerText              = fmtRssi(tank.rssi);
+    document.getElementById('sensor-alert-container').innerHTML = sensorAlert;
+
+    const rect = document.getElementById('water-rect');
+    if (rect) { rect.setAttribute('height', FILL_H); rect.setAttribute('y', FILL_Y); rect.setAttribute('fill', levelColor(tank.level_pct)); }
+    const wave = document.getElementById('water-wave');
+    if (wave) { wave.setAttribute('d', `M 0 ${FILL_Y} Q 15 ${FILL_Y-3} 30 ${FILL_Y} T 60 ${FILL_Y} T 90 ${FILL_Y} T 120 ${FILL_Y} L 120 100 L 0 100 Z`); wave.setAttribute('fill', levelColor(tank.level_pct)); }
+  }
+}
+
+function statusBadgeHTML(state) {
+  const map = { online: ['badge-online','Online'], stale: ['badge-stale','Stale'], lost: ['badge-lost','Lost'], waiting: ['badge-waiting','Waiting'] };
+  const [cls, label] = map[state] || ['badge-waiting', state || 'Unknown'];
+  return `<span class="tank-status-badge ${cls}">${label}</span>`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.body.insertAdjacentHTML('afterbegin', SVG_DEFS);
+  log('info', 'Standalone ESP8266 App ready');
+  autoConnect();
+});
+)rawliteral";

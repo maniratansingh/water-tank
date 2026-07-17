@@ -1,0 +1,19 @@
+# ── Build artifacts ──────────────────────────────────────────────
+.pio/
+.pioenvs/
+.piolibdeps/
+cmake-build-*/
+
+# ── IDE / OS ─────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.DS_Store
+Thumbs.db
+
+# ── Credentials (never commit passwords!) ───────────────────────
+src/credentials.h
+credentials.h
+
+# ── Python bytecache ─────────────────────────────────────────────
+__pycache__/
+*.py[cod]
