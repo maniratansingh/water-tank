@@ -5,21 +5,51 @@
 
 ---
 
-## 🙏 Inspiration & Credit
+## 💡 The Philosophy — A Poor Man's Water Monitor
 
-This project was **heavily inspired by [TankSync](https://github.com/Techposts/TankSync) by [@Techposts](https://github.com/Techposts)**.
+I came across **[TankSync by @Techposts](https://github.com/Techposts/TankSync)** and loved the idea.  
+His build is professional, reliable, runs all day without issues, and is genuinely well-engineered.
 
-I saw his project, loved the concept, and built this as my own **barebones learning version**.
+**But I had one problem — I didn't want to spend that much.**
 
-| | This project | TankSync (original) |
+So I asked myself: *what is the absolute minimum I need to know if my tank is full or empty?*  
+The answer was simple — just a percentage on my phone. Nothing more.
+
+That's what this is. No fancy features. No multi-tank support. No OTA updates.  
+Just a ₹486 sensor stuck to a tank lid, telling me how much water I have left.
+
+This is the **DIY, jugaad, poor man's version** — built with whatever was cheapest at the local electronics shop.
+
+---
+
+## 🧾 Bill of Materials — Total Cost ₹ ~490
+
+| Component | What it does | Cost |
 |---|---|---|
-| **Complexity** | Barebones / minimal | Full-featured / professional |
-| **Files** | 1 single `.ino` file | Multi-file, structured project |
-| **Features** | Level % + Wi-Fi signal + calibration | Multi-tank, history, alerts, OTA, and more |
-| **Best for** | Quick personal use, learning, hacking | Production-ready deployments |
+| **ESP8266 NodeMCU** | The brain — runs Wi-Fi + web server | ₹ 175 |
+| **JSN-SR04M** | Waterproof ultrasonic sensor — measures water level | ₹ 259 |
+| **CCTV junction box** | Weatherproof enclosure to house the electronics | ₹ 50 |
+| **Resistors + wire + solder** | Wiring it all up | ₹ 2–5 |
+| **Total** | | **≈ ₹ 490** |
 
-> **➡️ If you want something comprehensive and production-ready, go use [TankSync](https://github.com/Techposts/TankSync) — it is far more complete.**  
-> This repo is just my stripped-down version that I built to understand how it works.
+> That's less than ₹500 for a live water level monitor on your phone.  
+> No subscription. No hub. No internet required. Just your home Wi-Fi.
+
+---
+
+## 🙏 Credit & Comparison
+
+| | This project | [TankSync](https://github.com/Techposts/TankSync) (original) |
+|---|---|---|
+| **Philosophy** | Cheap DIY / jugaad | Professional & reliable |
+| **Complexity** | Barebones — 1 file | Multi-file, structured |
+| **Features** | Level % + Wi-Fi signal + calibration | Multi-tank, history, alerts, OTA, and more |
+| **Reliability** | Good enough for home use | Rock solid, runs 24/7 |
+| **Best for** | ₹500 budget builds, learning, hacking | Anyone who wants it to just work |
+
+> **If you want something that works reliably, professionally, and has all the features — use [TankSync](https://github.com/Techposts/TankSync). The original author did an excellent job.**  
+>  
+> **If you want the cheapest possible thing that gets the job done — you're in the right place.**
 
 ---
 
