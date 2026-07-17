@@ -5,6 +5,24 @@
 
 ---
 
+## 🙏 Inspiration & Credit
+
+This project was **heavily inspired by [TankSync](https://github.com/Techposts/TankSync) by [@Techposts](https://github.com/Techposts)**.
+
+I saw his project, loved the concept, and built this as my own **barebones learning version**.
+
+| | This project | TankSync (original) |
+|---|---|---|
+| **Complexity** | Barebones / minimal | Full-featured / professional |
+| **Files** | 1 single `.ino` file | Multi-file, structured project |
+| **Features** | Level % + Wi-Fi signal + calibration | Multi-tank, history, alerts, OTA, and more |
+| **Best for** | Quick personal use, learning, hacking | Production-ready deployments |
+
+> **➡️ If you want something comprehensive and production-ready, go use [TankSync](https://github.com/Techposts/TankSync) — it is far more complete.**  
+> This repo is just my stripped-down version that I built to understand how it works.
+
+---
+
 ## 📸 Dashboard Preview
 
 The live web dashboard shows water level, Wi-Fi signal, animated tank fill, and lets you calibrate the sensor without reflashing — all over WebSocket.
