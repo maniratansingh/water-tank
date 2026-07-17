@@ -4,6 +4,22 @@
  *  Single-file Arduino sketch — just open and upload.
  * ================================================================
  *
+ *  PHILOSOPHY & ORIGIN
+ *  -------------------
+ *  Inspired by the excellent and full-featured "TankSync" project
+ *  by @Techposts (https://github.com/Techposts/TankSync). While the
+ *  original is highly comprehensive, professional, and robust, this 
+ *  version is designed to be a barebones, ultra-low-cost DIY alternative.
+ *
+ *  By stripping out extra complexity, this water monitor was built
+ *  for under ₹500:
+ *  - ESP8266 NodeMCU                   :  ₹175
+ *  - JSN-SR04M Waterproof Sensor       :  ₹259
+ *  - CCTV Junction Box Enclosure       :  ₹50
+ *  - Solder, wires, and a ₹2 resistor  :  ₹5
+ *  ---------------------------------------------
+ *  Total Project Cost                  : ~₹489
+ *
  *  HARDWARE
  *  --------
  *  Board  : ESP8266 (NodeMCU 1.0 or Wemos D1 Mini)
